@@ -340,14 +340,30 @@
 
   /* --- 既有預約列表 --- */
   .existing{
-    margin-bottom: 22px;
+    margin-bottom: 8px;
+  }
+  .existing-head{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 12px;
   }
   .existing h4{
     font-size: 12px;
     letter-spacing: 2px;
     color: var(--morandi-ink-soft);
-    margin: 0 0 10px;
+    margin: 0;
     font-weight: 500;
+  }
+  .count-chip{
+    font-size: 11px;
+    letter-spacing: 1px;
+    background: var(--morandi-blue-mist);
+    color: var(--morandi-blue-deep);
+    padding: 2px 8px;
+    border-radius: 999px;
+    min-width: 22px;
+    text-align: center;
   }
   .booking-item{
     background: #fff;
@@ -389,26 +405,107 @@
     color: var(--morandi-blue-deep);
     letter-spacing: .5px;
   }
-  .del-btn{
+  .booking-info .note{
+    margin-top: 8px;
+    padding: 8px 10px;
+    background: var(--morandi-paper);
+    border-left: 3px solid var(--morandi-blue-soft);
+    border-radius: 6px;
+    font-size: 12px;
+    color: var(--morandi-ink-soft);
+    line-height: 1.55;
+    letter-spacing: .3px;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .item-actions{
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+  .edit-btn, .del-btn{
     background: transparent;
     border: none;
-    color: var(--morandi-rose);
     cursor: pointer;
     font-size: 12px;
-    padding: 6px 10px;
+    padding: 6px 12px;
     border-radius: 8px;
     transition: all .2s var(--ease);
     letter-spacing: 1px;
+    font-family: inherit;
   }
-  .del-btn:hover{
-    background: rgba(198,169,161,.15);
-  }
+  .edit-btn{ color: var(--morandi-blue-deep); }
+  .edit-btn:hover{ background: var(--morandi-blue-mist); }
+  .del-btn{ color: var(--morandi-rose); }
+  .del-btn:hover{ background: rgba(198,169,161,.15); }
+
   .empty-state{
     text-align: center;
-    padding: 12px;
+    padding: 18px 12px;
     color: var(--morandi-ink-soft);
     font-size: 13px;
     letter-spacing: 1px;
+    background: var(--morandi-paper);
+    border: 1px dashed var(--morandi-gray-soft);
+    border-radius: var(--radius-md);
+  }
+
+  /* 新增預約按鈕（觸發顯示表單） */
+  .btn-add{
+    width: 100%;
+    margin-top: 12px;
+    padding: 13px 16px;
+    background: #fff;
+    border: 1.5px dashed var(--morandi-blue-soft);
+    color: var(--morandi-blue-deep);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    font-size: 14px;
+    font-family: inherit;
+    letter-spacing: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all .25s var(--ease);
+  }
+  .btn-add:hover{
+    background: var(--morandi-blue-mist);
+    border-color: var(--morandi-blue);
+    border-style: solid;
+    transform: translateY(-1px);
+  }
+  .btn-add .plus{
+    font-size: 18px;
+    line-height: 1;
+    font-weight: 300;
+  }
+
+  /* 表單面板開合 */
+  .form-panel.hidden,
+  .divider.hidden,
+  .btn-add.hidden{ display: none !important; }
+
+  .form-head{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+  .form-head h4{
+    font-size: 13px;
+    letter-spacing: 2px;
+    color: var(--morandi-blue-deep);
+    margin: 0;
+    font-weight: 500;
+  }
+  .form-head::before{
+    content: "";
+    width: 3px;
+    height: 14px;
+    background: var(--morandi-blue);
+    border-radius: 2px;
   }
 
   .divider{
@@ -430,6 +527,13 @@
     letter-spacing: 2px;
     font-weight: 500;
   }
+  .form-group label .optional{
+    color: var(--morandi-gray);
+    font-size: 11px;
+    letter-spacing: 1px;
+    margin-left: 2px;
+    font-weight: 400;
+  }
   .input, .select{
     width: 100%;
     padding: 12px 14px;
@@ -441,6 +545,11 @@
     font-family: inherit;
     transition: all .2s var(--ease);
     letter-spacing: .5px;
+  }
+  .textarea{
+    resize: vertical;
+    min-height: 72px;
+    line-height: 1.6;
   }
   .input:focus, .select:focus{
     outline: none;
@@ -678,13 +787,22 @@
     </div>
 
     <div class="existing">
-      <h4>當日預約</h4>
+      <div class="existing-head">
+        <h4>當日預約</h4>
+        <span class="count-chip" id="countChip">0</span>
+      </div>
       <div id="bookingList"></div>
+      <button type="button" class="btn-add" id="showFormBtn">
+        <span class="plus">＋</span><span>新增預約</span>
+      </button>
     </div>
 
-    <div class="divider"></div>
+    <div class="divider hidden" id="formDivider"></div>
 
-    <form id="bookingForm" autocomplete="off">
+    <form id="bookingForm" class="form-panel hidden" autocomplete="off">
+      <div class="form-head">
+        <h4 id="formTitle">新增預約</h4>
+      </div>
       <div class="form-group">
         <label for="nameInput">預約人姓名</label>
         <input class="input" type="text" id="nameInput" placeholder="請輸入預約人姓名" required />
@@ -708,9 +826,9 @@
             <span class="label">LINE 官方</span>
           </label>
           <label class="check">
-            <input type="checkbox" value="電話" checked />
+            <input type="checkbox" value="電話預約" checked />
             <span class="box"></span>
-            <span class="label">電話</span>
+            <span class="label">電話預約</span>
           </label>
           <label class="check">
             <input type="checkbox" value="臉書" />
@@ -725,9 +843,14 @@
         </div>
       </div>
 
+      <div class="form-group">
+        <label for="noteInput">備註 <span class="optional">（選填）</span></label>
+        <textarea class="input textarea" id="noteInput" rows="3" placeholder="例如：過敏、特殊需求、來訪人數…"></textarea>
+      </div>
+
       <div class="actions">
         <button type="button" class="btn btn-ghost" id="cancelBtn">取 消</button>
-        <button type="submit" class="btn btn-primary">確認送出</button>
+        <button type="submit" class="btn btn-primary" id="submitBtn">確認送出</button>
       </div>
     </form>
   </div>
@@ -759,9 +882,15 @@
 
   const form       = $("bookingForm");
   const nameInput  = $("nameInput");
+  const noteInput  = $("noteInput");
   const startTime  = $("startTime");
   const endTime    = $("endTime");
   const bookingList= $("bookingList");
+  const showFormBtn= $("showFormBtn");
+  const formDivider= $("formDivider");
+  const formTitle  = $("formTitle");
+  const submitBtn  = $("submitBtn");
+  const countChip  = $("countChip");
   const toast      = $("toast");
 
   /* ---------- 狀態 ---------- */
@@ -769,6 +898,8 @@
   let viewYear  = now.getFullYear();
   let viewMonth = now.getMonth(); // 0-11
   let selectedDateKey = null;     // "YYYY-MM-DD"
+  let formMode = "create";        // "create" | "edit"
+  let editingId = null;
 
   /* ---------- 儲存 ---------- */
   function loadAll() {
@@ -787,6 +918,13 @@
     const all = loadAll();
     if (!all[key]) all[key] = [];
     all[key].push(b);
+    all[key].sort((a,b) => a.start.localeCompare(b.start));
+    saveAll(all);
+  }
+  function updateBooking(key, id, patch) {
+    const all = loadAll();
+    if (!all[key]) return;
+    all[key] = all[key].map(b => b.id === id ? { ...b, ...patch } : b);
     all[key].sort((a,b) => a.start.localeCompare(b.start));
     saveAll(all);
   }
@@ -877,24 +1015,16 @@
     const dObj = new Date(y, m-1, d);
     const wk = WEEKDAYS[dObj.getDay()];
     modalDate.textContent = `${y} / ${pad(m)} / ${pad(d)}（週${wk}）`;
-    modalSub.textContent  = "新增與管理當日預約";
 
     buildTimeOptions(startTime, "10:00");
     buildTimeOptions(endTime,   "11:00");
 
-    form.reset();
-    form.querySelectorAll(".check input").forEach(cb => {
-      cb.checked = (cb.value === "電話");
-    });
-    startTime.value = "10:00";
-    endTime.value   = "11:00";
-
+    hideForm();           // 進來預設不顯示表單
     renderBookingList();
 
     overlay.classList.add("open");
     modal.classList.add("open");
     document.body.style.overflow = "hidden";
-    setTimeout(() => nameInput.focus(), 280);
   }
 
   function closeModal(){
@@ -902,12 +1032,67 @@
     modal.classList.remove("open");
     document.body.style.overflow = "";
     selectedDateKey = null;
+    hideForm();
+  }
+
+  /* ---------- 表單面板開合 ---------- */
+  function resetFormDefaults(){
+    form.reset();
+    form.querySelectorAll(".check input").forEach(cb => {
+      cb.checked = (cb.value === "電話預約");
+    });
+    startTime.value = "10:00";
+    endTime.value   = "11:00";
+    noteInput.value = "";
+  }
+
+  function showForm(mode, booking){
+    formMode  = mode;
+    editingId = booking ? booking.id : null;
+
+    if (mode === "edit" && booking){
+      formTitle.textContent = "編輯預約";
+      submitBtn.textContent = "儲存變更";
+      modalSub.textContent  = "修改既有預約內容";
+      nameInput.value = booking.name;
+      startTime.value = booking.start;
+      endTime.value   = booking.end;
+      noteInput.value = booking.note || "";
+      form.querySelectorAll(".check input").forEach(cb => {
+        cb.checked = booking.contacts.includes(cb.value);
+      });
+    } else {
+      formTitle.textContent = "新增預約";
+      submitBtn.textContent = "確認送出";
+      modalSub.textContent  = "新增一筆當日預約";
+      resetFormDefaults();
+    }
+
+    form.classList.remove("hidden");
+    formDivider.classList.remove("hidden");
+    showFormBtn.classList.add("hidden");
+    setTimeout(() => {
+      nameInput.focus();
+      form.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }, 80);
+  }
+
+  function hideForm(){
+    formMode  = "create";
+    editingId = null;
+    form.classList.add("hidden");
+    formDivider.classList.add("hidden");
+    showFormBtn.classList.remove("hidden");
+    modalSub.textContent = "當日預約一覽";
+    resetFormDefaults();
   }
 
   function renderBookingList(){
     const list = getBookings(selectedDateKey);
+    countChip.textContent = list.length;
+
     if (list.length === 0){
-      bookingList.innerHTML = `<div class="empty-state">這天還沒有預約，新增一筆吧。</div>`;
+      bookingList.innerHTML = `<div class="empty-state">這天還沒有預約</div>`;
       return;
     }
     bookingList.innerHTML = list.map(b => `
@@ -916,13 +1101,24 @@
           <div class="name">${escapeHTML(b.name)}</div>
           <div class="meta">${b.start} — ${b.end}</div>
           <div class="tags">${b.contacts.map(c => `<span class="tag">${escapeHTML(c)}</span>`).join("")}</div>
+          ${b.note ? `<div class="note">${escapeHTML(b.note)}</div>` : ""}
         </div>
-        <button class="del-btn" data-id="${b.id}">刪 除</button>
+        <div class="item-actions">
+          <button class="edit-btn" data-id="${b.id}">編 輯</button>
+          <button class="del-btn"  data-id="${b.id}">刪 除</button>
+        </div>
       </div>
     `).join("");
 
+    bookingList.querySelectorAll(".edit-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const target = getBookings(selectedDateKey).find(b => b.id === btn.dataset.id);
+        if (target) showForm("edit", target);
+      });
+    });
     bookingList.querySelectorAll(".del-btn").forEach(btn => {
       btn.addEventListener("click", () => {
+        if (formMode === "edit" && editingId === btn.dataset.id) hideForm();
         deleteBooking(selectedDateKey, btn.dataset.id);
         renderBookingList();
         renderCalendar();
@@ -944,25 +1140,31 @@
     const s = startTime.value;
     const en = endTime.value;
     const contacts = Array.from(form.querySelectorAll(".check input:checked")).map(cb => cb.value);
+    const note = noteInput.value.trim();
 
     if (!name){ showToast("請輸入預約人姓名", "error"); return; }
     if (s >= en){ showToast("結束時間需晚於開始時間", "error"); return; }
     if (contacts.length === 0){ showToast("請至少選擇一種聯絡方式", "error"); return; }
 
-    addBooking(selectedDateKey, {
-      id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
-      name, start: s, end: en, contacts,
-      createdAt: new Date().toISOString()
-    });
+    if (formMode === "edit" && editingId){
+      updateBooking(selectedDateKey, editingId, { name, start: s, end: en, contacts, note });
+      showToast("已更新預約");
+    } else {
+      addBooking(selectedDateKey, {
+        id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+        name, start: s, end: en, contacts, note,
+        createdAt: new Date().toISOString()
+      });
+      showToast("預約已建立");
+    }
 
-    showToast("預約已建立");
-    form.reset();
-    form.querySelectorAll(".check input").forEach(cb => cb.checked = (cb.value === "電話"));
-    startTime.value = "10:00";
-    endTime.value   = "11:00";
+    hideForm();
     renderBookingList();
     renderCalendar();
   });
+
+  /* 新增預約按鈕 → 顯示空白表單 */
+  showFormBtn.addEventListener("click", () => showForm("create"));
 
   /* ---------- 控制列 ---------- */
   $("prevBtn").addEventListener("click", () => {
@@ -984,9 +1186,13 @@
 
   overlay.addEventListener("click", closeModal);
   closeBtn.addEventListener("click", closeModal);
-  cancelBtn.addEventListener("click", closeModal);
+  cancelBtn.addEventListener("click", hideForm); // 取消 → 收起表單，回到列表
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && modal.classList.contains("open")) closeModal();
+    if (e.key !== "Escape") return;
+    if (!modal.classList.contains("open")) return;
+    // 表單開著就先收表單，沒開才整個關 modal
+    if (!form.classList.contains("hidden")) hideForm();
+    else closeModal();
   });
 
   /* ---------- 初始化 ---------- */

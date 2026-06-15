@@ -588,6 +588,90 @@
     font-size: 14px;
   }
 
+  /* 狀態 pill（預約時段下方） */
+  .status-row{
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .status-pill{
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 12px;
+    background: #fff;
+    border: 1px solid var(--morandi-gray-soft);
+    border-radius: 999px;
+    font-size: 13px;
+    color: var(--morandi-ink-soft);
+    cursor: pointer;
+    transition: all .2s var(--ease);
+    user-select: none;
+    letter-spacing: 1px;
+  }
+  .status-pill input{ display: none; }
+  .status-pill .dot{
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--morandi-gray-soft);
+    transition: all .2s var(--ease);
+  }
+  .status-pill[data-status="confirmed"]:has(input:checked){
+    background: rgba(147,175,160,.18);
+    border-color: var(--morandi-accent);
+    color: #4f6a5a;
+    font-weight: 500;
+  }
+  .status-pill[data-status="confirmed"]:has(input:checked) .dot{
+    background: var(--morandi-accent);
+    box-shadow: 0 0 0 3px rgba(147,175,160,.25);
+  }
+  .status-pill[data-status="pending"]:has(input:checked){
+    background: rgba(198,169,161,.18);
+    border-color: var(--morandi-rose);
+    color: #8a6a62;
+    font-weight: 500;
+  }
+  .status-pill[data-status="pending"]:has(input:checked) .dot{
+    background: var(--morandi-rose);
+    box-shadow: 0 0 0 3px rgba(198,169,161,.25);
+  }
+  .status-pill:hover{ border-color: var(--morandi-blue-soft); }
+
+  /* 列表上的狀態徽章 */
+  .status-badge{
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10.5px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    margin-left: 8px;
+    letter-spacing: 1px;
+    font-weight: 500;
+    vertical-align: middle;
+  }
+  .status-badge::before{
+    content: "";
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+  .status-badge.confirmed{
+    background: rgba(147,175,160,.18);
+    color: #4f6a5a;
+    border: 1px solid rgba(147,175,160,.4);
+  }
+  .status-badge.confirmed::before{ background: var(--morandi-accent); }
+  .status-badge.pending{
+    background: rgba(198,169,161,.18);
+    color: #8a6a62;
+    border: 1px solid rgba(198,169,161,.4);
+  }
+  .status-badge.pending::before{ background: var(--morandi-rose); }
+
   /* checkbox 自製 */
   .check-grid{
     display: grid;
@@ -659,6 +743,12 @@
     align-items: center;
   }
   .rolls-input{ flex: 1; }
+  .rolls-input.auto{
+    background: var(--morandi-blue-mist);
+    color: var(--morandi-blue-deep);
+    cursor: not-allowed;
+    font-weight: 500;
+  }
   .btn-toggle{
     display: inline-flex;
     align-items: center;
@@ -853,6 +943,7 @@
       transform: translate(0, 100%);
       width: 100%;
       max-height: 92vh;
+      max-height: 92dvh; /* 鍵盤彈出時自動縮，蓋住版面的機率較低 */
       border-radius: 24px 24px 0 0;
       padding: 22px 18px 28px;
     }
@@ -866,6 +957,10 @@
       background: var(--morandi-gray-soft);
       border-radius: 4px;
       margin: -4px auto 14px;
+    }
+    /* 鍵盤彈出時：給表單下方留足夠空間，textarea 才能被捲到可視範圍 */
+    .modal.kb-up .form-panel{
+      padding-bottom: 55vh;
     }
   }
 
@@ -959,6 +1054,16 @@
           <select class="select" id="startTime" required></select>
           <span class="sep">—</span>
           <select class="select" id="endTime" required></select>
+        </div>
+        <div class="status-row">
+          <label class="status-pill" data-status="confirmed">
+            <input type="radio" name="status" value="confirmed" />
+            <span class="dot"></span><span>已確定</span>
+          </label>
+          <label class="status-pill" data-status="pending">
+            <input type="radio" name="status" value="pending" checked />
+            <span class="dot"></span><span>未確定</span>
+          </label>
         </div>
       </div>
 
@@ -1153,6 +1258,13 @@
   function isSameDay(a, b){
     return a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate();
   }
+  function addMinutes(t, mins){
+    const [h, m] = t.split(":").map(Number);
+    let total = h * 60 + m + mins;
+    if (total >= 24 * 60) total = 23 * 60 + 55;
+    return `${pad(Math.floor(total/60))}:${pad(total%60)}`;
+  }
+  function isMobile(){ return window.innerWidth <= 768; }
   function showToast(msg, type="ok"){
     toast.textContent = msg;
     toast.classList.toggle("error", type === "error");
@@ -1259,7 +1371,7 @@
       inp.addEventListener("input", () => {
         const idx = +inp.dataset.i;
         bagsState[idx] = Math.max(0, parseInt(inp.value, 10) || 0);
-        updateBagsSum();
+        syncTotalFromBags();
       });
     });
     bagsListEl.querySelectorAll(".bag-del").forEach(btn => {
@@ -1267,26 +1379,32 @@
         const idx = +btn.dataset.i;
         bagsState.splice(idx, 1);
         renderBags();
+        syncTotalFromBags();
       });
     });
-    updateBagsSum();
+    syncTotalFromBags();
   }
 
-  function updateBagsSum(){
+  // 分袋裝開啟時，總捲數 = 各袋總和（自動帶出）
+  function syncTotalFromBags(){
+    if (!isSplit) return;
     const sum = bagsState.reduce((a,b) => a+b, 0);
-    const total = parseInt(totalRollsInput.value, 10) || 0;
-    bagsSumEl.textContent = `${sum} / ${total}`;
-    bagsSumEl.classList.toggle("match",    sum === total && total > 0);
-    bagsSumEl.classList.toggle("mismatch", sum !== total);
+    totalRollsInput.value = sum;
+    bagsSumEl.textContent = `共 ${bagsState.length} 袋．總和 ${sum} 捲`;
   }
 
   function setSplit(on){
     isSplit = on;
     bagsSection.classList.toggle("hidden", !on);
     toggleBagsBtn.classList.toggle("active", on);
+    totalRollsInput.disabled = on;
+    totalRollsInput.classList.toggle("auto", on);
     if (on){
       if (bagsState.length === 0) bagsState = [0, 0];
       renderBags();
+    } else {
+      // 關閉時讓 total 可編輯，保留目前數字
+      bagsSumEl.textContent = "";
     }
   }
 
@@ -1296,7 +1414,27 @@
     bagsState.push(0);
     renderBags();
   });
-  totalRollsInput.addEventListener("input", updateBagsSum);
+
+  /* ---------- 預約時段：開始時間變動，結束自動 +5 分鐘 ---------- */
+  startTime.addEventListener("change", () => {
+    if (endTime.value <= startTime.value){
+      endTime.value = addMinutes(startTime.value, 5);
+    }
+  });
+
+  /* ---------- 備註欄位：手機鍵盤彈出時把備註捲到可視區 ---------- */
+  noteInput.addEventListener("focus", () => {
+    if (!isMobile()) return;
+    modal.classList.add("kb-up");
+    setTimeout(() => {
+      const mRect = modal.getBoundingClientRect();
+      const nRect = noteInput.getBoundingClientRect();
+      modal.scrollTop += (nRect.top - mRect.top) - 24;
+    }, 320);
+  });
+  noteInput.addEventListener("blur", () => {
+    modal.classList.remove("kb-up");
+  });
 
   /* ---------- 表單面板開合 ---------- */
   function resetFormDefaults(){
@@ -1304,10 +1442,16 @@
     form.querySelectorAll(".check input").forEach(cb => {
       cb.checked = (cb.value === "電話預約");
     });
+    // 狀態預設「未確定」
+    form.querySelectorAll("input[name='status']").forEach(r => {
+      r.checked = (r.value === "pending");
+    });
     startTime.value = "10:00";
     endTime.value   = "11:00";
     noteInput.value = "";
     totalRollsInput.value = 0;
+    totalRollsInput.disabled = false;
+    totalRollsInput.classList.remove("auto");
     bagsState = [];
     setSplit(false);
   }
@@ -1335,6 +1479,11 @@
       totalRollsInput.value = booking.totalRolls || 0;
       bagsState = Array.isArray(booking.bags) ? booking.bags.slice() : [];
       setSplit(bagsState.length > 0);
+      // 帶入狀態
+      const targetStatus = booking.status || "pending";
+      form.querySelectorAll("input[name='status']").forEach(r => {
+        r.checked = (r.value === targetStatus);
+      });
     } else {
       formTitle.textContent = "新增預約";
       submitBtn.textContent = "確認送出";
@@ -1377,11 +1526,13 @@
         const splitTxt = bags.length > 0 ? `<span class="split">．分 ${bags.length} 袋</span>` : "";
         rollsHTML = `<div class="rolls"><span class="roll-ico">📦</span>總共 ${total} 捲${splitTxt}</div>`;
       }
+      const status = b.status || "pending";
+      const statusTxt = status === "confirmed" ? "已確定" : "未確定";
       return `
       <div class="booking-item">
         <div class="booking-info">
           <div class="name">${escapeHTML(b.name)}</div>
-          <div class="meta">${b.start} — ${b.end}</div>
+          <div class="meta">${b.start} — ${b.end}<span class="status-badge ${status}">${statusTxt}</span></div>
           ${rollsHTML}
           <div class="tags">${(b.contacts||[]).map(c => `<span class="tag">${escapeHTML(c)}</span>`).join("")}</div>
           ${b.note ? `<div class="note">${escapeHTML(b.note)}</div>` : ""}
@@ -1434,20 +1585,17 @@
     const checkedRadio = form.querySelector(".check input:checked");
     const contacts = checkedRadio ? [checkedRadio.value] : [];
     const note = noteInput.value.trim();
-    const totalRolls = Math.max(0, parseInt(totalRollsInput.value, 10) || 0);
     const bags = isSplit ? bagsState.map(n => Math.max(0, parseInt(n, 10) || 0)) : [];
+    const totalRolls = isSplit
+      ? bags.reduce((a,b) => a+b, 0)
+      : Math.max(0, parseInt(totalRollsInput.value, 10) || 0);
+    const statusRadio = form.querySelector("input[name='status']:checked");
+    const status = statusRadio ? statusRadio.value : "pending";
 
     if (!name){ showToast("請輸入預約人姓名", "error"); return; }
     if (s >= en){ showToast("結束時間需晚於開始時間", "error"); return; }
     if (contacts.length === 0){ showToast("請選擇聯絡方式", "error"); return; }
-    if (isSplit){
-      if (bags.length < 1){ showToast("分袋裝至少要 1 袋", "error"); return; }
-      const sum = bags.reduce((a,b) => a+b, 0);
-      if (sum !== totalRolls){
-        showToast(`袋裝總和 ${sum} 與總捲數 ${totalRolls} 不符`, "error");
-        return;
-      }
-    }
+    if (isSplit && bags.length < 1){ showToast("分袋裝至少要 1 袋", "error"); return; }
 
     const originalText = submitBtn.textContent;
     submitBtn.disabled = true;
@@ -1455,12 +1603,12 @@
 
     try {
       if (formMode === "edit" && editingId){
-        await apiUpdate(editingId, { name, start: s, end: en, contacts, note, totalRolls, bags });
+        await apiUpdate(editingId, { name, start: s, end: en, contacts, note, totalRolls, bags, status });
         showToast("已更新預約");
       } else {
         await apiCreate({
           date: selectedDateKey,
-          name, start: s, end: en, contacts, note, totalRolls, bags,
+          name, start: s, end: en, contacts, note, totalRolls, bags, status,
         });
         showToast("預約已建立");
       }
@@ -1543,6 +1691,7 @@
             note: b.note || "",
             totalRolls: b.totalRolls || 0,
             bags: b.bags || [],
+            status: b.status || "pending",
           });
           ok++;
         } catch (e) {

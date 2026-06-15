@@ -60,7 +60,10 @@ CREATE INDEX IF NOT EXISTS idx_bookings_date ON bookings(date);
 -- 後續加入的欄位（既有資料表也會自動補上）
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS total_rolls INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS bags JSONB NOT NULL DEFAULT '[]'::jsonb;
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'pending';
 """
+
+VALID_STATUSES = {"confirmed", "pending"}
 
 
 def init_db():
@@ -90,6 +93,7 @@ def serialize(row):
         "note": row["note"] or "",
         "totalRolls": row.get("total_rolls") or 0,
         "bags": row.get("bags") or [],
+        "status": row.get("status") or "pending",
         "createdAt": row["created_at"].isoformat() if row.get("created_at") else None,
     }
 
@@ -127,6 +131,10 @@ def validate_payload(d, require_date=True):
         return "too many bags"
     if bags and sum(bags) != total_rolls:
         return "sum of bags must equal totalRolls"
+
+    status = d.get("status", "pending")
+    if status not in VALID_STATUSES:
+        return f"status must be one of {sorted(VALID_STATUSES)}"
     return None
 
 
@@ -183,8 +191,8 @@ def create_booking():
     with get_conn() as conn, conn.cursor(cursor_factory=RealDictCursor) as cur:
         cur.execute(
             """
-            INSERT INTO bookings (id, date, name, start_time, end_time, contacts, note, total_rolls, bags)
-            VALUES (%s, %s, %s, %s, %s, %s::jsonb, %s, %s, %s::jsonb)
+            INSERT INTO bookings (id, date, name, start_time, end_time, contacts, note, total_rolls, bags, status)
+            VALUES (%s, %s, %s, %s, %s, %s::jsonb, %s, %s, %s::jsonb, %s)
             RETURNING *
             """,
             (
@@ -197,6 +205,7 @@ def create_booking():
                 data.get("note", "").strip(),
                 data.get("totalRolls", 0),
                 json.dumps(data.get("bags", [])),
+                data.get("status", "pending"),
             ),
         )
         row = cur.fetchone()
@@ -215,7 +224,7 @@ def update_booking(booking_id):
             """
             UPDATE bookings
             SET name=%s, start_time=%s, end_time=%s, contacts=%s::jsonb, note=%s,
-                total_rolls=%s, bags=%s::jsonb
+                total_rolls=%s, bags=%s::jsonb, status=%s
             WHERE id=%s
             RETURNING *
             """,
@@ -227,6 +236,7 @@ def update_booking(booking_id):
                 data.get("note", "").strip(),
                 data.get("totalRolls", 0),
                 json.dumps(data.get("bags", [])),
+                data.get("status", "pending"),
                 booking_id,
             ),
         )

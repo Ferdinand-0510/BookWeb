@@ -4,3 +4,12 @@ Thumbs.db
 node_modules/
 *.log
 .claude/
+
+# Python / Flask
+__pycache__/
+*.pyc
+*.pyo
+.env
+.venv/
+venv/
+.pytest_cache/

@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: bookweb-api
+    runtime: python
+    rootDir: backend
+    plan: free
+    region: singapore
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: ALLOWED_ORIGIN
+        sync: false
+      - key: PYTHON_VERSION
+        value: 3.11.9

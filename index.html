@@ -184,6 +184,11 @@
     display: grid;
     grid-template-columns: repeat(7, 1fr);
     gap: 8px;
+    transition: opacity .25s var(--ease);
+  }
+  .days.loading{
+    opacity: .45;
+    pointer-events: none;
   }
   .day{
     position: relative;
@@ -861,7 +866,12 @@
 (() => {
   "use strict";
 
-  const STORAGE_KEY = "morandi_bookings_v1";
+  // ⚙️ 部署完 Render 後，把下面字串改成你的 API 網址（不要尾端斜線）
+  //    例如: "https://bookweb-api.onrender.com"
+  //    本機開發可填 "http://localhost:5000"
+  const API_BASE = "https://bookweb-api.onrender.com";
+
+  const LEGACY_STORAGE_KEY = "morandi_bookings_v1"; // 僅供 migrateFromLocalStorage() 使用
   const WEEKDAYS = ["日","一","二","三","四","五","六"];
   const MONTH_NAMES = ["一月","二月","三月","四月","五月","六月","七月","八月","九月","十月","十一月","十二月"];
 
@@ -901,39 +911,66 @@
   let formMode = "create";        // "create" | "edit"
   let editingId = null;
 
-  /* ---------- 儲存 ---------- */
-  function loadAll() {
+  // 當月資料快取，key = "YYYY-MM-DD"
+  let bookingsByDate = {};
+  let loadedMonthKey = "";  // 已載入的月份 "YYYY-MM"
+
+  /* ---------- API ---------- */
+  async function apiFetch(path, opts = {}) {
+    if (!API_BASE) throw new Error("尚未設定 API_BASE");
+    const res = await fetch(API_BASE + path, {
+      headers: { "Content-Type": "application/json" },
+      ...opts,
+    });
+    if (!res.ok) {
+      let msg = `HTTP ${res.status}`;
+      try { const j = await res.json(); if (j.error) msg = j.error; } catch {}
+      throw new Error(msg);
+    }
+    if (res.status === 204) return null;
+    return await res.json();
+  }
+
+  async function loadMonth(year, month, { force = false } = {}) {
+    const mKey = `${year}-${pad(month+1)}`;
+    if (loadedMonthKey === mKey && !force) return;
+    const lastDay = new Date(year, month+1, 0).getDate();
+    const from = `${mKey}-01`;
+    const to   = `${mKey}-${pad(lastDay)}`;
+    daysEl.classList.add("loading");
     try {
-      return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
-    } catch { return {}; }
+      const list = await apiFetch(`/api/bookings?from=${from}&to=${to}`);
+      bookingsByDate = {};
+      for (const b of list) (bookingsByDate[b.date] ||= []).push(b);
+      loadedMonthKey = mKey;
+    } catch (e) {
+      showToast("無法連線後端：" + e.message, "error");
+      throw e;
+    } finally {
+      daysEl.classList.remove("loading");
+    }
   }
-  function saveAll(data) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  }
+
   function getBookings(key) {
-    const all = loadAll();
-    return all[key] || [];
+    return bookingsByDate[key] || [];
   }
-  function addBooking(key, b) {
-    const all = loadAll();
-    if (!all[key]) all[key] = [];
-    all[key].push(b);
-    all[key].sort((a,b) => a.start.localeCompare(b.start));
-    saveAll(all);
+
+  async function apiCreate(payload) {
+    return apiFetch("/api/bookings", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
   }
-  function updateBooking(key, id, patch) {
-    const all = loadAll();
-    if (!all[key]) return;
-    all[key] = all[key].map(b => b.id === id ? { ...b, ...patch } : b);
-    all[key].sort((a,b) => a.start.localeCompare(b.start));
-    saveAll(all);
+  async function apiUpdate(id, payload) {
+    return apiFetch(`/api/bookings/${encodeURIComponent(id)}`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    });
   }
-  function deleteBooking(key, id) {
-    const all = loadAll();
-    if (!all[key]) return;
-    all[key] = all[key].filter(b => b.id !== id);
-    if (all[key].length === 0) delete all[key];
-    saveAll(all);
+  async function apiDelete(id) {
+    return apiFetch(`/api/bookings/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    });
   }
 
   /* ---------- 工具 ---------- */
@@ -1117,12 +1154,21 @@
       });
     });
     bookingList.querySelectorAll(".del-btn").forEach(btn => {
-      btn.addEventListener("click", () => {
-        if (formMode === "edit" && editingId === btn.dataset.id) hideForm();
-        deleteBooking(selectedDateKey, btn.dataset.id);
-        renderBookingList();
-        renderCalendar();
-        showToast("已刪除預約");
+      btn.addEventListener("click", async () => {
+        if (!confirm("確定刪除這筆預約？")) return;
+        const id = btn.dataset.id;
+        btn.disabled = true;
+        try {
+          await apiDelete(id);
+          if (formMode === "edit" && editingId === id) hideForm();
+          await loadMonth(viewYear, viewMonth, { force: true });
+          renderBookingList();
+          renderCalendar();
+          showToast("已刪除預約");
+        } catch (e) {
+          showToast("刪除失敗：" + e.message, "error");
+          btn.disabled = false;
+        }
       });
     });
   }
@@ -1134,7 +1180,7 @@
   }
 
   /* ---------- 表單送出 ---------- */
-  form.addEventListener("submit", (e) => {
+  form.addEventListener("submit", async (e) => {
     e.preventDefault();
     const name = nameInput.value.trim();
     const s = startTime.value;
@@ -1146,42 +1192,56 @@
     if (s >= en){ showToast("結束時間需晚於開始時間", "error"); return; }
     if (contacts.length === 0){ showToast("請至少選擇一種聯絡方式", "error"); return; }
 
-    if (formMode === "edit" && editingId){
-      updateBooking(selectedDateKey, editingId, { name, start: s, end: en, contacts, note });
-      showToast("已更新預約");
-    } else {
-      addBooking(selectedDateKey, {
-        id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
-        name, start: s, end: en, contacts, note,
-        createdAt: new Date().toISOString()
-      });
-      showToast("預約已建立");
-    }
+    const originalText = submitBtn.textContent;
+    submitBtn.disabled = true;
+    submitBtn.textContent = "處理中…";
 
-    hideForm();
-    renderBookingList();
-    renderCalendar();
+    try {
+      if (formMode === "edit" && editingId){
+        await apiUpdate(editingId, { name, start: s, end: en, contacts, note });
+        showToast("已更新預約");
+      } else {
+        await apiCreate({
+          date: selectedDateKey,
+          name, start: s, end: en, contacts, note,
+        });
+        showToast("預約已建立");
+      }
+      await loadMonth(viewYear, viewMonth, { force: true });
+      hideForm();
+      renderBookingList();
+      renderCalendar();
+    } catch (err) {
+      showToast("儲存失敗：" + err.message, "error");
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = originalText;
+    }
   });
 
   /* 新增預約按鈕 → 顯示空白表單 */
   showFormBtn.addEventListener("click", () => showForm("create"));
 
   /* ---------- 控制列 ---------- */
+  async function gotoMonth(y, m){
+    viewYear = y; viewMonth = m;
+    renderCalendar();        // 先用快取畫一次（可能是空的）
+    try { await loadMonth(y, m); } catch {}
+    renderCalendar();        // 載入後再畫一次
+  }
   $("prevBtn").addEventListener("click", () => {
-    viewMonth--;
-    if (viewMonth < 0){ viewMonth = 11; viewYear--; }
-    renderCalendar();
+    let y = viewYear, m = viewMonth - 1;
+    if (m < 0){ m = 11; y--; }
+    gotoMonth(y, m);
   });
   $("nextBtn").addEventListener("click", () => {
-    viewMonth++;
-    if (viewMonth > 11){ viewMonth = 0; viewYear++; }
-    renderCalendar();
+    let y = viewYear, m = viewMonth + 1;
+    if (m > 11){ m = 0; y++; }
+    gotoMonth(y, m);
   });
   $("todayBtn").addEventListener("click", () => {
     const t = new Date();
-    viewYear = t.getFullYear();
-    viewMonth = t.getMonth();
-    renderCalendar();
+    gotoMonth(t.getFullYear(), t.getMonth());
   });
 
   overlay.addEventListener("click", closeModal);
@@ -1196,13 +1256,47 @@
   });
 
   /* ---------- 初始化 ---------- */
-  function init(){
+  async function init(){
     const t = new Date();
     todayChip.textContent = `今天 · ${t.getFullYear()} / ${pad(t.getMonth()+1)} / ${pad(t.getDate())}`;
     renderWeekdays();
-    renderCalendar();
+    renderCalendar();                // 先畫空骨架
+    try { await loadMonth(viewYear, viewMonth); } catch {}
+    renderCalendar();                // 拿到資料再畫一次
   }
   init();
+
+  /* ---------- 一次性：把 localStorage 舊資料匯入後端 ----------
+     在瀏覽器 console 執行：migrateFromLocalStorage()
+  */
+  window.migrateFromLocalStorage = async function(){
+    const raw = localStorage.getItem(LEGACY_STORAGE_KEY);
+    if (!raw){ console.log("沒有本機舊資料"); return; }
+    const all = JSON.parse(raw);
+    let ok = 0, fail = 0;
+    for (const [date, list] of Object.entries(all)){
+      for (const b of list){
+        try {
+          await apiCreate({
+            date,
+            name: b.name,
+            start: b.start,
+            end: b.end,
+            contacts: b.contacts || [],
+            note: b.note || "",
+          });
+          ok++;
+        } catch (e) {
+          console.error("匯入失敗:", date, b, e);
+          fail++;
+        }
+      }
+    }
+    console.log(`匯入完成：成功 ${ok} 筆，失敗 ${fail} 筆`);
+    await loadMonth(viewYear, viewMonth, { force: true });
+    renderCalendar();
+    showToast(`匯入完成：${ok} 筆`);
+  };
 
 })();
 </script>

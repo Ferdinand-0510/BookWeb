@@ -56,6 +56,10 @@ CREATE TABLE IF NOT EXISTS bookings (
     created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_bookings_date ON bookings(date);
+
+-- 後續加入的欄位（既有資料表也會自動補上）
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS total_rolls INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS bags JSONB NOT NULL DEFAULT '[]'::jsonb;
 """
 
 
@@ -84,6 +88,8 @@ def serialize(row):
         "end": row["end_time"],
         "contacts": row["contacts"] or [],
         "note": row["note"] or "",
+        "totalRolls": row.get("total_rolls") or 0,
+        "bags": row.get("bags") or [],
         "createdAt": row["created_at"].isoformat() if row.get("created_at") else None,
     }
 
@@ -108,6 +114,19 @@ def validate_payload(d, require_date=True):
         return "note must be a string"
     if len(d["name"]) > 100 or len(note) > 1000:
         return "field too long"
+
+    total_rolls = d.get("totalRolls", 0)
+    if not isinstance(total_rolls, int) or total_rolls < 0 or total_rolls > 100000:
+        return "totalRolls must be a non-negative integer"
+    bags = d.get("bags", [])
+    if not isinstance(bags, list):
+        return "bags must be a list"
+    if not all(isinstance(b, int) and b >= 0 for b in bags):
+        return "each bag count must be a non-negative integer"
+    if len(bags) > 50:
+        return "too many bags"
+    if bags and sum(bags) != total_rolls:
+        return "sum of bags must equal totalRolls"
     return None
 
 
@@ -158,8 +177,8 @@ def create_booking():
     with get_conn() as conn, conn.cursor(cursor_factory=RealDictCursor) as cur:
         cur.execute(
             """
-            INSERT INTO bookings (id, date, name, start_time, end_time, contacts, note)
-            VALUES (%s, %s, %s, %s, %s, %s::jsonb, %s)
+            INSERT INTO bookings (id, date, name, start_time, end_time, contacts, note, total_rolls, bags)
+            VALUES (%s, %s, %s, %s, %s, %s::jsonb, %s, %s, %s::jsonb)
             RETURNING *
             """,
             (
@@ -170,6 +189,8 @@ def create_booking():
                 data["end"],
                 json.dumps(data["contacts"]),
                 data.get("note", "").strip(),
+                data.get("totalRolls", 0),
+                json.dumps(data.get("bags", [])),
             ),
         )
         row = cur.fetchone()
@@ -187,7 +208,8 @@ def update_booking(booking_id):
         cur.execute(
             """
             UPDATE bookings
-            SET name=%s, start_time=%s, end_time=%s, contacts=%s::jsonb, note=%s
+            SET name=%s, start_time=%s, end_time=%s, contacts=%s::jsonb, note=%s,
+                total_rolls=%s, bags=%s::jsonb
             WHERE id=%s
             RETURNING *
             """,
@@ -197,6 +219,8 @@ def update_booking(booking_id):
                 data["end"],
                 json.dumps(data["contacts"]),
                 data.get("note", "").strip(),
+                data.get("totalRolls", 0),
+                json.dumps(data.get("bags", [])),
                 booking_id,
             ),
         )

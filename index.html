@@ -396,6 +396,22 @@
     color: var(--morandi-ink-soft);
     letter-spacing: .5px;
   }
+  .booking-info .rolls{
+    margin-top: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--morandi-blue-deep);
+    background: linear-gradient(135deg, var(--morandi-blue-mist) 0%, #fff 100%);
+    border: 1px solid var(--morandi-blue-soft);
+    padding: 4px 10px;
+    border-radius: 999px;
+    letter-spacing: .5px;
+    font-weight: 500;
+  }
+  .booking-info .rolls .roll-ico{ font-size: 13px; }
+  .booking-info .rolls .split{ color: var(--morandi-ink-soft); font-weight: 400; }
   .booking-info .tags{
     margin-top: 6px;
     display: flex;
@@ -623,6 +639,130 @@
     color: var(--morandi-blue-deep);
     font-weight: 500;
   }
+  /* radio：圓形 + 中心小白點 */
+  .check input[type="radio"] + .box{
+    border-radius: 50%;
+  }
+  .check input[type="radio"] + .box::after{
+    content: "";
+    width: 8px; height: 8px;
+    border: none;
+    border-radius: 50%;
+    background: #fff;
+    transform: none;
+  }
+
+  /* 總捲數列 + 分袋按鈕 */
+  .rolls-row{
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  .rolls-input{ flex: 1; }
+  .btn-toggle{
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 12px 16px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--morandi-gray-soft);
+    background: #fff;
+    color: var(--morandi-ink-soft);
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 13px;
+    letter-spacing: 1px;
+    transition: all .2s var(--ease);
+    white-space: nowrap;
+  }
+  .btn-toggle:hover{
+    border-color: var(--morandi-blue-soft);
+    color: var(--morandi-blue-deep);
+  }
+  .btn-toggle.active{
+    background: var(--morandi-blue);
+    border-color: var(--morandi-blue);
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(107,132,151,.25);
+  }
+  .btn-toggle .bag-ico{ font-size: 14px; }
+
+  /* 分袋明細區塊 */
+  .bags-section{
+    margin-top: 12px;
+    padding: 14px;
+    background: var(--morandi-paper);
+    border: 1px dashed var(--morandi-blue-soft);
+    border-radius: var(--radius-md);
+  }
+  .bags-head{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .bags-title{
+    font-size: 12px;
+    letter-spacing: 2px;
+    color: var(--morandi-ink-soft);
+    font-weight: 500;
+  }
+  .bags-sum{
+    font-size: 12px;
+    color: var(--morandi-ink-soft);
+    letter-spacing: .5px;
+    font-variant-numeric: tabular-nums;
+  }
+  .bags-sum.match{ color: var(--morandi-accent); }
+  .bags-sum.mismatch{ color: var(--morandi-rose); }
+  .bags-list{ display: flex; flex-direction: column; gap: 8px; }
+  .bag-row{
+    display: grid;
+    grid-template-columns: 70px 1fr 32px;
+    gap: 8px;
+    align-items: center;
+  }
+  .bag-label{
+    font-size: 13px;
+    color: var(--morandi-ink);
+    letter-spacing: 1px;
+  }
+  .bag-input{
+    padding: 9px 12px;
+    font-size: 14px;
+  }
+  .bag-del{
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: var(--morandi-rose);
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 1;
+    transition: all .2s var(--ease);
+  }
+  .bag-del:hover{ background: rgba(198,169,161,.15); }
+  .bag-del:disabled{ opacity: .3; cursor: not-allowed; }
+  .btn-add-bag{
+    margin-top: 10px;
+    width: 100%;
+    padding: 8px;
+    border-radius: 8px;
+    border: 1px dashed var(--morandi-gray-soft);
+    background: transparent;
+    color: var(--morandi-ink-soft);
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12px;
+    letter-spacing: 1px;
+    transition: all .2s var(--ease);
+  }
+  .btn-add-bag:hover{
+    border-color: var(--morandi-blue);
+    color: var(--morandi-blue-deep);
+    background: #fff;
+  }
 
   /* 按鈕 */
   .actions{
@@ -823,28 +963,47 @@
       </div>
 
       <div class="form-group">
-        <label>聯絡方式（可複選）</label>
+        <label>聯絡方式</label>
         <div class="check-grid">
           <label class="check">
-            <input type="checkbox" value="LINE 官方" />
+            <input type="radio" name="contact" value="LINE 官方" />
             <span class="box"></span>
             <span class="label">LINE 官方</span>
           </label>
           <label class="check">
-            <input type="checkbox" value="電話預約" checked />
+            <input type="radio" name="contact" value="電話預約" checked />
             <span class="box"></span>
             <span class="label">電話預約</span>
           </label>
           <label class="check">
-            <input type="checkbox" value="臉書" />
+            <input type="radio" name="contact" value="臉書" />
             <span class="box"></span>
             <span class="label">臉書</span>
           </label>
           <label class="check">
-            <input type="checkbox" value="現場" />
+            <input type="radio" name="contact" value="現場" />
             <span class="box"></span>
             <span class="label">現場</span>
           </label>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="totalRollsInput">總捲數</label>
+        <div class="rolls-row">
+          <input class="input rolls-input" type="number" id="totalRollsInput" min="0" step="1" value="0" />
+          <button type="button" id="toggleBagsBtn" class="btn-toggle">
+            <span class="bag-ico">🛍</span><span>分袋裝</span>
+          </button>
+        </div>
+
+        <div id="bagsSection" class="bags-section hidden">
+          <div class="bags-head">
+            <span class="bags-title">分袋明細</span>
+            <span class="bags-sum" id="bagsSum">0 / 0</span>
+          </div>
+          <div id="bagsList" class="bags-list"></div>
+          <button type="button" id="addBagBtn" class="btn-add-bag">＋ 加一袋</button>
         </div>
       </div>
 
@@ -902,6 +1061,12 @@
   const submitBtn  = $("submitBtn");
   const countChip  = $("countChip");
   const toast      = $("toast");
+  const totalRollsInput = $("totalRollsInput");
+  const toggleBagsBtn   = $("toggleBagsBtn");
+  const bagsSection     = $("bagsSection");
+  const bagsListEl      = $("bagsList");
+  const bagsSumEl       = $("bagsSum");
+  const addBagBtn       = $("addBagBtn");
 
   /* ---------- 狀態 ---------- */
   const now = new Date();
@@ -910,6 +1075,15 @@
   let selectedDateKey = null;     // "YYYY-MM-DD"
   let formMode = "create";        // "create" | "edit"
   let editingId = null;
+
+  // 分袋狀態
+  let isSplit = false;
+  let bagsState = [];
+
+  const CN_NUMS = "一二三四五六七八九十";
+  function bagLabel(i){
+    return i < 10 ? `第${CN_NUMS[i]}袋` : `第${i+1}袋`;
+  }
 
   // 當月資料快取，key = "YYYY-MM-DD"
   let bookingsByDate = {};
@@ -1072,6 +1246,58 @@
     hideForm();
   }
 
+  /* ---------- 分袋 UI ---------- */
+  function renderBags(){
+    bagsListEl.innerHTML = bagsState.map((c, i) => `
+      <div class="bag-row">
+        <span class="bag-label">${bagLabel(i)}</span>
+        <input type="number" min="0" step="1" value="${c}" class="input bag-input" data-i="${i}" />
+        <button type="button" class="bag-del" data-i="${i}" ${bagsState.length <= 1 ? "disabled" : ""} aria-label="刪除">×</button>
+      </div>
+    `).join("");
+    bagsListEl.querySelectorAll(".bag-input").forEach(inp => {
+      inp.addEventListener("input", () => {
+        const idx = +inp.dataset.i;
+        bagsState[idx] = Math.max(0, parseInt(inp.value, 10) || 0);
+        updateBagsSum();
+      });
+    });
+    bagsListEl.querySelectorAll(".bag-del").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const idx = +btn.dataset.i;
+        bagsState.splice(idx, 1);
+        renderBags();
+      });
+    });
+    updateBagsSum();
+  }
+
+  function updateBagsSum(){
+    const sum = bagsState.reduce((a,b) => a+b, 0);
+    const total = parseInt(totalRollsInput.value, 10) || 0;
+    bagsSumEl.textContent = `${sum} / ${total}`;
+    bagsSumEl.classList.toggle("match",    sum === total && total > 0);
+    bagsSumEl.classList.toggle("mismatch", sum !== total);
+  }
+
+  function setSplit(on){
+    isSplit = on;
+    bagsSection.classList.toggle("hidden", !on);
+    toggleBagsBtn.classList.toggle("active", on);
+    if (on){
+      if (bagsState.length === 0) bagsState = [0, 0];
+      renderBags();
+    }
+  }
+
+  toggleBagsBtn.addEventListener("click", () => setSplit(!isSplit));
+  addBagBtn.addEventListener("click", () => {
+    if (bagsState.length >= 50){ showToast("最多 50 袋", "error"); return; }
+    bagsState.push(0);
+    renderBags();
+  });
+  totalRollsInput.addEventListener("input", updateBagsSum);
+
   /* ---------- 表單面板開合 ---------- */
   function resetFormDefaults(){
     form.reset();
@@ -1081,6 +1307,9 @@
     startTime.value = "10:00";
     endTime.value   = "11:00";
     noteInput.value = "";
+    totalRollsInput.value = 0;
+    bagsState = [];
+    setSplit(false);
   }
 
   function showForm(mode, booking){
@@ -1096,8 +1325,16 @@
       endTime.value   = booking.end;
       noteInput.value = booking.note || "";
       form.querySelectorAll(".check input").forEach(cb => {
-        cb.checked = booking.contacts.includes(cb.value);
+        cb.checked = (booking.contacts || []).includes(cb.value);
       });
+      // 單選後備：若沒有任何被選到（資料異常）就預設電話預約
+      if (!form.querySelector(".check input:checked")){
+        const fallback = form.querySelector(".check input[value='電話預約']");
+        if (fallback) fallback.checked = true;
+      }
+      totalRollsInput.value = booking.totalRolls || 0;
+      bagsState = Array.isArray(booking.bags) ? booking.bags.slice() : [];
+      setSplit(bagsState.length > 0);
     } else {
       formTitle.textContent = "新增預約";
       submitBtn.textContent = "確認送出";
@@ -1132,12 +1369,21 @@
       bookingList.innerHTML = `<div class="empty-state">這天還沒有預約</div>`;
       return;
     }
-    bookingList.innerHTML = list.map(b => `
+    bookingList.innerHTML = list.map(b => {
+      const total = b.totalRolls || 0;
+      const bags  = Array.isArray(b.bags) ? b.bags : [];
+      let rollsHTML = "";
+      if (total > 0){
+        const splitTxt = bags.length > 0 ? `<span class="split">．分 ${bags.length} 袋</span>` : "";
+        rollsHTML = `<div class="rolls"><span class="roll-ico">📦</span>總共 ${total} 捲${splitTxt}</div>`;
+      }
+      return `
       <div class="booking-item">
         <div class="booking-info">
           <div class="name">${escapeHTML(b.name)}</div>
           <div class="meta">${b.start} — ${b.end}</div>
-          <div class="tags">${b.contacts.map(c => `<span class="tag">${escapeHTML(c)}</span>`).join("")}</div>
+          ${rollsHTML}
+          <div class="tags">${(b.contacts||[]).map(c => `<span class="tag">${escapeHTML(c)}</span>`).join("")}</div>
           ${b.note ? `<div class="note">${escapeHTML(b.note)}</div>` : ""}
         </div>
         <div class="item-actions">
@@ -1145,7 +1391,7 @@
           <button class="del-btn"  data-id="${b.id}">刪 除</button>
         </div>
       </div>
-    `).join("");
+    `;}).join("");
 
     bookingList.querySelectorAll(".edit-btn").forEach(btn => {
       btn.addEventListener("click", () => {
@@ -1185,12 +1431,23 @@
     const name = nameInput.value.trim();
     const s = startTime.value;
     const en = endTime.value;
-    const contacts = Array.from(form.querySelectorAll(".check input:checked")).map(cb => cb.value);
+    const checkedRadio = form.querySelector(".check input:checked");
+    const contacts = checkedRadio ? [checkedRadio.value] : [];
     const note = noteInput.value.trim();
+    const totalRolls = Math.max(0, parseInt(totalRollsInput.value, 10) || 0);
+    const bags = isSplit ? bagsState.map(n => Math.max(0, parseInt(n, 10) || 0)) : [];
 
     if (!name){ showToast("請輸入預約人姓名", "error"); return; }
     if (s >= en){ showToast("結束時間需晚於開始時間", "error"); return; }
-    if (contacts.length === 0){ showToast("請至少選擇一種聯絡方式", "error"); return; }
+    if (contacts.length === 0){ showToast("請選擇聯絡方式", "error"); return; }
+    if (isSplit){
+      if (bags.length < 1){ showToast("分袋裝至少要 1 袋", "error"); return; }
+      const sum = bags.reduce((a,b) => a+b, 0);
+      if (sum !== totalRolls){
+        showToast(`袋裝總和 ${sum} 與總捲數 ${totalRolls} 不符`, "error");
+        return;
+      }
+    }
 
     const originalText = submitBtn.textContent;
     submitBtn.disabled = true;
@@ -1198,12 +1455,12 @@
 
     try {
       if (formMode === "edit" && editingId){
-        await apiUpdate(editingId, { name, start: s, end: en, contacts, note });
+        await apiUpdate(editingId, { name, start: s, end: en, contacts, note, totalRolls, bags });
         showToast("已更新預約");
       } else {
         await apiCreate({
           date: selectedDateKey,
-          name, start: s, end: en, contacts, note,
+          name, start: s, end: en, contacts, note, totalRolls, bags,
         });
         showToast("預約已建立");
       }
@@ -1282,8 +1539,10 @@
             name: b.name,
             start: b.start,
             end: b.end,
-            contacts: b.contacts || [],
+            contacts: (b.contacts || []).slice(0, 1), // 舊資料可能多選，只取第一個
             note: b.note || "",
+            totalRolls: b.totalRolls || 0,
+            bags: b.bags || [],
           });
           ok++;
         } catch (e) {

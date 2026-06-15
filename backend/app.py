@@ -131,6 +131,12 @@ def validate_payload(d, require_date=True):
 
 
 # ---------- routes ----------
+@app.route("/api/ping")
+def ping():
+    # 輕量 keep-alive 端點：不查 DB，給 UptimeRobot 之類的監控用
+    return {"ok": True}
+
+
 @app.route("/api/health")
 def health():
     try:
